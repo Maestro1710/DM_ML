@@ -1,0 +1,12 @@
+import tkinter as tk
+root = tk.Tk()
+root.title('Gợi ý sách')
+root.geometry("500x400")
+tk.Label(root, text="tên sách").pack()
+entry = tk.Entry(root, width=50)
+entry.pack()
+btn_Submit = tk.Button(root, text="gợi ý",width=20, pady=5)
+btn_Submit.pack()
+output = tk.Text(height=10, width=60)
+output.pack()
+root.mainloop()
