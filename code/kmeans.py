@@ -1,77 +1,99 @@
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from ast import literal_eval
+import tkinter as tk
+from tkinter import ttk, messagebox
 
 # Đọc dữ liệu
-file_path = "goodreads_data (1).csv"
-df = pd.read_csv(file_path)
+data_path = 'goodreads_data (1).csv'
+df = pd.read_csv(data_path)
 
 # Loại bỏ các cột không cần thiết
-df = df.drop(columns=["Unnamed: 0", "Description", "URL", "Author"])
+df.drop(columns=['Num_Ratings', 'Description', 'URL'], inplace=True)
 
-# Chuyển đổi Num_Ratings thành số nguyên, xử lý lỗi dấu phẩy
-df["Num_Ratings"] = df["Num_Ratings"].str.replace(",", "").astype(float)
+# Loại bỏ dữ liệu trống
+df.dropna(inplace=True)
 
-# Xử lý giá trị trống (Đã sửa lỗi `FutureWarning`)
-df["Avg_Rating"] = df["Avg_Rating"].fillna(df["Avg_Rating"].median())
-df["Num_Ratings"] = df["Num_Ratings"].fillna(df["Num_Ratings"].median())
-df["Genres"] = df["Genres"].fillna("Unknown")
+# Chuẩn hóa cột Genres (loại bỏ dấu [])
+df['Genres'] = df['Genres'].apply(lambda x: ', '.join(literal_eval(x)) if isinstance(x, str) else x)
 
-# Lọc dữ liệu bất thường
-df = df[(df["Avg_Rating"] >= 0) & (df["Avg_Rating"] <= 5)]  # Rating trong khoảng hợp lệ
-df = df[df["Num_Ratings"] >= 10]  # Loại bỏ sách có quá ít đánh giá
+# One-hot encoding cho Genres
+genres_dummies = df['Genres'].str.get_dummies(sep=', ')
 
-# Xử lý cột Genres (chuyển thành nhiều cột)
-df["Genres"] = df["Genres"].apply(lambda x: ", ".join(eval(x)) if isinstance(x, str) and x.startswith("[") else str(x))
-genres_df = df["Genres"].str.get_dummies(sep=", ")
-# Kết hợp lại dữ liệu
-df = pd.concat([df, genres_df], axis=1)
-df.drop(columns=["Genres"], inplace=True)
+df = pd.concat([df, genres_dummies], axis=1)
+df.drop(columns=['Genres'], inplace=True)
 
-# Chuẩn hóa dữ liệu
+# Chuẩn hóa Avg-Rating
 scaler = StandardScaler()
-data_scaled = scaler.fit_transform(df[["Avg_Rating", "Num_Ratings"] + list(genres_df.columns)])
-print(data_scaled)
-# df.to_excel("processed_goodreads.xlsx", index=False, engine="openpyxl")
+df['Avg_Rating'] = scaler.fit_transform(df[['Avg_Rating']])
 
+# Chuyển đổi Author thành dạng số (mã hóa Label Encoding)
+df['Author'] = df['Author'].astype('category').cat.codes
 
-# Sử dụng phương pháp Elbow để chọn số cụm tối ưu
-# inertia_values = []
-# K_range = range(1, 11)
-
-# for k in K_range:
-#     kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-#     kmeans.fit(data_scaled)
-#     inertia_values.append(kmeans.inertia_)
-
-# # Vẽ biểu đồ Elbow
-# plt.figure(figsize=(8, 5))
-# plt.plot(K_range, inertia_values, marker="o", linestyle="--")
-# plt.xlabel("Số cụm (k)")
-# plt.ylabel("Tổng khoảng cách nội cụm (Inertia)")
-# plt.title("Elbow Method để chọn số cụm tối ưu")
-# plt.show()
-
-# from sklearn.metrics import silhouette_score
-
-silhouette_scores = []
-for k in range(2, 11):  # Không xét k=1 vì silhouette không xác định được
+# tìm số cụm tối ưu bằng elbow method
+inertia = []
+k_values = range(2, 11)
+for k in k_values:
     kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    labels = kmeans.fit_predict(data_scaled)
-    score = silhouette_score(data_scaled, labels)
-    silhouette_scores.append(score)
+    kmeans.fit(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)])
+    inertia.append(kmeans.inertia_)
 
-# Vẽ đồ thị Silhouette Score
 plt.figure(figsize=(8, 5))
-plt.plot(range(2, 11), silhouette_scores, marker="o", linestyle="--")
-plt.xlabel("Số cụm (k)")
-plt.ylabel("Silhouette Score")
-plt.title("Silhouette Score để chọn số cụm tối ưu")
+plt.plot(k_values, inertia, marker='o')
+plt.xlabel('số cụm (k)')
+plt.ylabel('inertia')
+plt.title('elbow method để chọn số cụm tối ưu')
 plt.show()
 
-# Tìm k có silhouette score cao nhất
-best_k = range(2, 11)[np.argmax(silhouette_scores)]
-print(f"Số cụm tối ưu theo Silhouette Score: {best_k}")
+# Áp dụng thuật toán KMeans với số cụm tối ưu (ví dụ: k=5)
+kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+df['Cluster'] = kmeans.fit_predict(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)])
+
+# Đánh giá Silhouette Score
+silhouette_avg = silhouette_score(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)], df['Cluster'])
+print(f'Silhouette Score: {silhouette_avg:.4f}')
+
+# Kiểm tra số lượng sách trong mỗi cụm
+cluster_counts = df['Cluster'].value_counts()
+print("Số lượng sách trong mỗi cụm:")
+print(cluster_counts)
+
+# Gợi ý sách theo cụm
+def recommend_books():
+    book_title = entry.get()
+    if book_title not in df['Book'].values:
+        messagebox.showerror('lỗi',"Sách không có trong danh sách.")
+        return 
+    
+    book_cluster = df[df['Book'] == book_title]['Cluster'].values[0]
+    recommendations = df[df['Cluster'] == book_cluster].sample(5)
+    output.delete('1.0', tk.END)
+    output.insert(tk.END, "Gợi ý sách:\n")
+    for idx, row in recommendations.iterrows():
+        output.insert(tk.END, f"- {row['Book']}\n")
+    # return recommendations[['Book', 'Author', 'Avg_Rating']]
+
+# Xuất dữ liệu đã xử lý ra file CSV
+# Chạy thử nghiệm hệ thống
+# sample_book = df['Book'].sample(1).values[0]
+# print(f"Gợi ý sách cho: {sample_book}")
+# print(recommend_books(sample_book, df))
+
+# print("Hoàn thành xử lý dữ liệu, đánh giá và gợi ý sách!")
+
+#UI
+root = tk.Tk()
+root.title('Gợi ý sách')
+root.geometry("500x400")
+tk.Label(root, text="tên sách").pack()
+entry = tk.Entry(root, width=50)
+entry.pack()
+btn_Submit = tk.Button(root, text="gợi ý",width=20, pady=5, command=recommend_books)
+btn_Submit.pack()
+output = tk.Text(height=10, width=60)
+output.pack()
+root.mainloop()
