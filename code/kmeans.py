@@ -78,6 +78,7 @@ def recommend_books():
     # return recommendations[['Book', 'Author', 'Avg_Rating']]
 
 # Xuất dữ liệu đã xử lý ra file CSV
+df.to_csv("processed_books_csv.csv", index=False)
 # Chạy thử nghiệm hệ thống
 # sample_book = df['Book'].sample(1).values[0]
 # print(f"Gợi ý sách cho: {sample_book}")
