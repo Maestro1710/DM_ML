@@ -17,9 +17,11 @@ df.drop(columns=['Num_Ratings', 'Description', 'URL'], inplace=True)
 
 # Loại bỏ dữ liệu trống
 df.dropna(inplace=True)
+# df.to_csv("processed_books_csv.csv", index=False)
 
 # Chuẩn hóa cột Genres (loại bỏ dấu [])
 df['Genres'] = df['Genres'].apply(lambda x: ', '.join(literal_eval(x)) if isinstance(x, str) else x)
+df.to_csv("processed_books_csv.csv", index=False)
 
 # One-hot encoding cho Genres
 genres_dummies = df['Genres'].str.get_dummies(sep=', ')
@@ -31,25 +33,11 @@ df.drop(columns=['Genres'], inplace=True)
 scaler = StandardScaler()
 df['Avg_Rating'] = scaler.fit_transform(df[['Avg_Rating']])
 
-# Chuyển đổi Author thành dạng số (mã hóa Label Encoding)
+# Chuyển đổi Author thành dạng số (mã hóa catcategorical encoding)
 df['Author'] = df['Author'].astype('category').cat.codes
 
-# tìm số cụm tối ưu bằng elbow method
-inertia = []
-k_values = range(2, 11)
-for k in k_values:
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    kmeans.fit(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)])
-    inertia.append(kmeans.inertia_)
 
-plt.figure(figsize=(8, 5))
-plt.plot(k_values, inertia, marker='o')
-plt.xlabel('số cụm (k)')
-plt.ylabel('inertia')
-plt.title('elbow method để chọn số cụm tối ưu')
-plt.show()
-
-# Áp dụng thuật toán KMeans với số cụm tối ưu (ví dụ: k=5)
+# Áp dụng thuật toán KMeans với số cụm tối ưu \
 kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
 df['Cluster'] = kmeans.fit_predict(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)])
 
@@ -77,8 +65,8 @@ def recommend_books():
         output.insert(tk.END, f"- {row['Book']}\n")
     # return recommendations[['Book', 'Author', 'Avg_Rating']]
 
-# Xuất dữ liệu đã xử lý ra file CSV
-df.to_csv("processed_books_csv.csv", index=False)
+# Xuất dữ liệu đã xử lý ra file 
+# df.to_excel("processed_books_after.xlsx", index=False)
 # Chạy thử nghiệm hệ thống
 # sample_book = df['Book'].sample(1).values[0]
 # print(f"Gợi ý sách cho: {sample_book}")
