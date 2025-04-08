@@ -3,10 +3,10 @@ from mlxtend.frequent_patterns import fpgrowth, association_rules
 from sklearn.preprocessing import MultiLabelBinarizer
 
 #  Đọc dữ liệu từ file CSV
-df = pd.read_csv("processed_books_csv.csv")
+df = pd.read_csv("book_cleaned_python.csv")
 
 df["Genres"] = df["Genres"].astype(str)  # Chuyển tất cả về chuỗi để tránh float NaN
-df["Genres"] = df["Genres"].str.replace(r"[\[\]']", "", regex=True)  # Loại bỏ dấu []
+# df["Genres"] = df["Genres"].str.replace(r"[\[\]']", "", regex=True)  # Loại bỏ dấu []
 df["Genres"] = df["Genres"].str.split(", ")  # Chuyển thành danh sách
 
 #  Xử lý lỗi NaN (nếu có dòng nào bị NaN sau bước trên)

@@ -3,19 +3,8 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.discriminant_analysis import StandardScaler
-data_path = 'goodreads_data (1).csv'
+data_path = 'book_cleaned_python.csv'
 df = pd.read_csv(data_path)
-
-# Loại bỏ các cột không cần thiết
-df.drop(columns=['Num_Ratings', 'Description', 'URL'], inplace=True)
-
-# Loại bỏ dữ liệu trống
-df.dropna(inplace=True)
-# df.to_csv("processed_books_csv.csv", index=False)
-
-# Chuẩn hóa cột Genres (loại bỏ dấu [])
-df['Genres'] = df['Genres'].apply(lambda x: ', '.join(literal_eval(x)) if isinstance(x, str) else x)
-df.to_csv("processed_books_csv.csv", index=False)
 
 # One-hot encoding cho Genres
 genres_dummies = df['Genres'].str.get_dummies(sep=', ')

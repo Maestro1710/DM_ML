@@ -9,19 +9,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 # Đọc dữ liệu
-data_path = 'goodreads_data (1).csv'
+data_path = 'book_cleaned_python.csv'
 df = pd.read_csv(data_path)
 
-# Loại bỏ các cột không cần thiết
-df.drop(columns=['Num_Ratings', 'Description', 'URL'], inplace=True)
 
-# Loại bỏ dữ liệu trống
-df.dropna(inplace=True)
-# df.to_csv("processed_books_csv.csv", index=False)
-
-# Chuẩn hóa cột Genres (loại bỏ dấu [])
-df['Genres'] = df['Genres'].apply(lambda x: ', '.join(literal_eval(x)) if isinstance(x, str) else x)
-df.to_csv("processed_books_csv.csv", index=False)
 
 # One-hot encoding cho Genres
 genres_dummies = df['Genres'].str.get_dummies(sep=', ')
@@ -36,7 +27,7 @@ df['Avg_Rating'] = scaler.fit_transform(df[['Avg_Rating']])
 # Chuyển đổi Author thành dạng số (mã hóa catcategorical encoding)
 df['Author'] = df['Author'].astype('category').cat.codes
 
-
+df.to_excel("kmeans_data.xlsx",index=False )
 # Áp dụng thuật toán KMeans với số cụm tối ưu \
 kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
 df['Cluster'] = kmeans.fit_predict(df[['Author', 'Avg_Rating'] + list(genres_dummies.columns)])
@@ -65,8 +56,6 @@ def recommend_books():
         output.insert(tk.END, f"- {row['Book']}\n")
     # return recommendations[['Book', 'Author', 'Avg_Rating']]
 
-# Xuất dữ liệu đã xử lý ra file 
-# df.to_excel("processed_books_after.xlsx", index=False)
 # Chạy thử nghiệm hệ thống
 # sample_book = df['Book'].sample(1).values[0]
 # print(f"Gợi ý sách cho: {sample_book}")
